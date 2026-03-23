@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import CommentForm from '@/app/feed/comment-form'
 import CommentActions from '@/app/feed/comment-actions'
 import ReplyForm from '@/app/feed/reply-form'
+import ReactionButton from '@/app/feed/reaction-button'
 
 type CommentRow = {
   id: number
@@ -19,6 +20,14 @@ type ReplyRow = {
   content: string
   is_anonymous: boolean
   created_at: string
+}
+
+type ReactionRow = {
+  id: number
+  user_id: string
+  target_type: 'comment' | 'reply'
+  target_id: number
+  reaction_type: 'like'
 }
 
 type ProfileRow = {
@@ -64,8 +73,17 @@ export default async function FeedPage() {
     console.error('Error cargando respuestas:', repliesError)
   }
 
+  const { data: reactionsData, error: reactionsError } = await supabase
+    .from('reactions')
+    .select('id, user_id, target_type, target_id, reaction_type')
+
+  if (reactionsError) {
+    console.error('Error cargando reacciones:', reactionsError)
+  }
+
   const comments = (commentsData ?? []) as CommentRow[]
   const replies = (repliesData ?? []) as ReplyRow[]
+  const reactions = (reactionsData ?? []) as ReactionRow[]
 
   const visibleUserIds = [
     ...new Set([
@@ -105,6 +123,19 @@ export default async function FeedPage() {
       repliesByCommentId[reply.comment_id] = []
     }
     repliesByCommentId[reply.comment_id].push(reply)
+  }
+
+  const reactionCountByKey: Record<string, number> = {}
+  const reactedByCurrentUser = new Set<string>()
+
+  for (const reaction of reactions) {
+    const key = `${reaction.target_type}:${reaction.target_id}`
+
+    reactionCountByKey[key] = (reactionCountByKey[key] ?? 0) + 1
+
+    if (currentUserId && reaction.user_id === currentUserId) {
+      reactedByCurrentUser.add(key)
+    }
   }
 
   return (
@@ -149,6 +180,7 @@ export default async function FeedPage() {
 
               const isOwner = currentUserId === comment.user_id
               const commentReplies = repliesByCommentId[comment.id] ?? []
+              const commentReactionKey = `comment:${comment.id}`
 
               return (
                 <article
@@ -173,6 +205,14 @@ export default async function FeedPage() {
                   <p className="whitespace-pre-line text-white/90">
                     {comment.content}
                   </p>
+
+                  <ReactionButton
+                    userId={currentUserId}
+                    targetType="comment"
+                    targetId={comment.id}
+                    initialCount={reactionCountByKey[commentReactionKey] ?? 0}
+                    initialReacted={reactedByCurrentUser.has(commentReactionKey)}
+                  />
 
                   {isOwner ? (
                     <CommentActions
@@ -199,6 +239,8 @@ export default async function FeedPage() {
                               replyProfile?.username ||
                               'Usuario'
 
+                          const replyReactionKey = `reply:${reply.id}`
+
                           return (
                             <div
                               key={reply.id}
@@ -222,6 +264,18 @@ export default async function FeedPage() {
                               <p className="whitespace-pre-line text-white/90">
                                 {reply.content}
                               </p>
+
+                              <ReactionButton
+                                userId={currentUserId}
+                                targetType="reply"
+                                targetId={reply.id}
+                                initialCount={
+                                  reactionCountByKey[replyReactionKey] ?? 0
+                                }
+                                initialReacted={reactedByCurrentUser.has(
+                                  replyReactionKey
+                                )}
+                              />
                             </div>
                           )
                         })}
