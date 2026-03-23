@@ -13,6 +13,7 @@ export default function CommentForm({ userId }: CommentFormProps) {
   const router = useRouter()
 
   const [content, setContent] = useState('')
+  const [isAnonymous, setIsAnonymous] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -32,7 +33,7 @@ export default function CommentForm({ userId }: CommentFormProps) {
     const { error } = await supabase.from('comments').insert({
       user_id: userId,
       content: cleanContent,
-      is_anonymous: false,
+      is_anonymous: isAnonymous,
     })
 
     if (error) {
@@ -40,6 +41,7 @@ export default function CommentForm({ userId }: CommentFormProps) {
       setMessage('No se pudo publicar el comentario.')
     } else {
       setContent('')
+      setIsAnonymous(false)
       setMessage('Comentario publicado correctamente.')
       router.refresh()
     }
@@ -62,6 +64,16 @@ export default function CommentForm({ userId }: CommentFormProps) {
             className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-3 outline-none resize-none"
           />
         </div>
+
+        <label className="flex items-center gap-3 text-sm text-white/80">
+          <input
+            type="checkbox"
+            checked={isAnonymous}
+            onChange={(e) => setIsAnonymous(e.target.checked)}
+            className="h-4 w-4"
+          />
+          Publicar como anónimo
+        </label>
 
         {message && <p className="text-sm text-yellow-300">{message}</p>}
 

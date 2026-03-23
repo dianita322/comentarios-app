@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CommentForm from '@/app/feed/comment-form'
+import CommentActions from '@/app/feed/comment-actions'
 
 type CommentRow = {
   id: number
@@ -32,6 +33,8 @@ export default async function FeedPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  const currentUserId = user?.id ?? null
 
   const { data: commentsData, error: commentsError } = await supabase
     .from('comments')
@@ -112,6 +115,8 @@ export default async function FeedPage() {
                 ? 'Anónimo'
                 : profile?.display_name || profile?.username || 'Usuario'
 
+              const isOwner = currentUserId === comment.user_id
+
               return (
                 <article
                   key={comment.id}
@@ -135,6 +140,14 @@ export default async function FeedPage() {
                   <p className="whitespace-pre-line text-white/90">
                     {comment.content}
                   </p>
+
+                  {isOwner ? (
+                    <CommentActions
+                      commentId={comment.id}
+                      initialContent={comment.content}
+                      initialIsAnonymous={comment.is_anonymous}
+                    />
+                  ) : null}
                 </article>
               )
             })
