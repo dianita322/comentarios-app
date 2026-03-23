@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import CommentForm from '@/app/feed/comment-form'
 import CommentActions from '@/app/feed/comment-actions'
@@ -9,6 +10,7 @@ type CommentRow = {
   id: number
   user_id: string
   content: string
+  image_url: string | null
   is_anonymous: boolean
   created_at: string
 }
@@ -18,6 +20,7 @@ type ReplyRow = {
   comment_id: number
   user_id: string
   content: string
+  image_url: string | null
   is_anonymous: boolean
   created_at: string
 }
@@ -57,7 +60,7 @@ export default async function FeedPage() {
 
   const { data: commentsData, error: commentsError } = await supabase
     .from('comments')
-    .select('id, user_id, content, is_anonymous, created_at')
+    .select('id, user_id, content, image_url, is_anonymous, created_at')
     .order('created_at', { ascending: false })
 
   if (commentsError) {
@@ -66,7 +69,7 @@ export default async function FeedPage() {
 
   const { data: repliesData, error: repliesError } = await supabase
     .from('replies')
-    .select('id, comment_id, user_id, content, is_anonymous, created_at')
+    .select('id, comment_id, user_id, content, image_url, is_anonymous, created_at')
     .order('created_at', { ascending: true })
 
   if (repliesError) {
@@ -206,6 +209,18 @@ export default async function FeedPage() {
                     {comment.content}
                   </p>
 
+                  {comment.image_url ? (
+                    <div className="mt-4">
+                      <Image
+                        src={comment.image_url}
+                        alt="Imagen del comentario"
+                        width={1200}
+                        height={800}
+                        className="max-h-96 w-full rounded-xl object-cover border border-white/10"
+                      />
+                    </div>
+                  ) : null}
+
                   <ReactionButton
                     userId={currentUserId}
                     targetType="comment"
@@ -264,6 +279,18 @@ export default async function FeedPage() {
                               <p className="whitespace-pre-line text-white/90">
                                 {reply.content}
                               </p>
+
+                              {reply.image_url ? (
+                                <div className="mt-4">
+                                  <Image
+                                    src={reply.image_url}
+                                    alt="Imagen de la respuesta"
+                                    width={1200}
+                                    height={800}
+                                    className="max-h-80 w-full rounded-xl object-cover border border-white/10"
+                                  />
+                                </div>
+                              ) : null}
 
                               <ReactionButton
                                 userId={currentUserId}

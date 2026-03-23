@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -12,9 +12,11 @@ type ReplyFormProps = {
 export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
   const supabase = createClient()
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [content, setContent] = useState('')
   const [isAnonymous, setIsAnonymous] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -23,19 +25,59 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
 
     const cleanContent = content.trim()
 
-    if (!cleanContent) {
-      setMessage('Escribe una respuesta antes de publicar.')
+    if (!cleanContent && !imageFile) {
+      setMessage('Escribe una respuesta o sube una imagen antes de publicar.')
       return
+    }
+
+    if (imageFile) {
+      if (!imageFile.type.startsWith('image/')) {
+        setMessage('El archivo debe ser una imagen.')
+        return
+      }
+
+      if (imageFile.size > 2 * 1024 * 1024) {
+        setMessage('La imagen no puede pesar más de 2 MB.')
+        return
+      }
     }
 
     setLoading(true)
     setMessage('')
 
+    let imageUrl: string | null = null
+
+    if (imageFile) {
+      const safeFileName = imageFile.name.replace(/\s+/g, '-')
+      const filePath = `${userId}/${Date.now()}-${safeFileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('feed-images')
+        .upload(filePath, imageFile, {
+          contentType: imageFile.type,
+          upsert: false,
+        })
+
+      if (uploadError) {
+        console.error('Error subiendo imagen de la respuesta:', uploadError)
+        setMessage('No se pudo subir la imagen.')
+        setLoading(false)
+        return
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('feed-images')
+        .getPublicUrl(filePath)
+
+      imageUrl = publicUrlData.publicUrl
+    }
+
     const { error } = await supabase.from('replies').insert({
       comment_id: commentId,
       user_id: userId,
-      content: cleanContent,
+      content: cleanContent || '',
       is_anonymous: isAnonymous,
+      image_url: imageUrl,
     })
 
     if (error) {
@@ -44,6 +86,10 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
     } else {
       setContent('')
       setIsAnonymous(false)
+      setImageFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
       setMessage('Respuesta publicada correctamente.')
       router.refresh()
     }
@@ -64,6 +110,20 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
             rows={4}
             className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-3 outline-none resize-none"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm mb-2">Imagen opcional</label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-white/80"
+          />
+          <p className="mt-2 text-xs text-white/50">
+            Solo imágenes. Máximo 2 MB.
+          </p>
         </div>
 
         <label className="flex items-center gap-3 text-sm text-white/80">
