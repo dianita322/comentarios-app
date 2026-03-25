@@ -1,17 +1,32 @@
-"use client";
+'use client'
 
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
-export function LogoutButton() {
-  const router = useRouter();
+export default function LogoutButton() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
-  const logout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth/login");
-  };
+  async function handleLogout() {
+    setLoading(true)
 
-  return <Button onClick={logout}>Logout</Button>;
+    const supabase = createClient()
+    await supabase.auth.signOut()
+
+    router.push('/auth/login')
+    router.refresh()
+    setLoading(false)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleLogout}
+      disabled={loading}
+      className="rounded-lg border border-red-400/40 px-4 py-2 text-sm text-red-300 transition hover:bg-red-400/10 disabled:opacity-50"
+    >
+      {loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
+    </button>
+  )
 }
