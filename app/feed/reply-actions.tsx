@@ -5,24 +5,24 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import FormStatus from '@/components/form-status'
 
-type CommentActionsProps = {
-  commentId: number
+type ReplyActionsProps = {
+  replyId: number
   initialContent: string
   initialIsAnonymous: boolean
 }
 
-const COMMENT_MAX = 500
+const REPLY_MAX = 300
 
 type StatusState = {
   type: 'success' | 'error' | 'info'
   message: string
 } | null
 
-export default function CommentActions({
-  commentId,
+export default function ReplyActions({
+  replyId,
   initialContent,
   initialIsAnonymous,
-}: CommentActionsProps) {
+}: ReplyActionsProps) {
   const supabase = createClient()
   const router = useRouter()
 
@@ -34,7 +34,7 @@ export default function CommentActions({
 
   async function handleDelete() {
     const confirmed = window.confirm(
-      '¿Seguro que quieres eliminar este comentario?'
+      '¿Seguro que quieres eliminar esta respuesta?'
     )
 
     if (!confirmed) return
@@ -43,15 +43,15 @@ export default function CommentActions({
     setStatus(null)
 
     const { error } = await supabase
-      .from('comments')
+      .from('replies')
       .delete()
-      .eq('id', commentId)
+      .eq('id', replyId)
 
     if (error) {
-      console.error('Error eliminando comentario:', error)
+      console.error('Error eliminando respuesta:', error)
       setStatus({
         type: 'error',
-        message: 'No se pudo eliminar el comentario.',
+        message: 'No se pudo eliminar la respuesta.',
       })
     } else {
       router.refresh()
@@ -68,15 +68,15 @@ export default function CommentActions({
     if (!cleanContent) {
       setStatus({
         type: 'error',
-        message: 'El comentario no puede estar vacío.',
+        message: 'La respuesta no puede estar vacía.',
       })
       return
     }
 
-    if (cleanContent.length > COMMENT_MAX) {
+    if (cleanContent.length > REPLY_MAX) {
       setStatus({
         type: 'error',
-        message: `El comentario no puede superar los ${COMMENT_MAX} caracteres.`,
+        message: `La respuesta no puede superar los ${REPLY_MAX} caracteres.`,
       })
       return
     }
@@ -85,23 +85,23 @@ export default function CommentActions({
     setStatus(null)
 
     const { error } = await supabase
-      .from('comments')
+      .from('replies')
       .update({
         content: cleanContent,
         is_anonymous: isAnonymous,
       })
-      .eq('id', commentId)
+      .eq('id', replyId)
 
     if (error) {
-      console.error('Error actualizando comentario:', error)
+      console.error('Error actualizando respuesta:', error)
       setStatus({
         type: 'error',
-        message: 'No se pudo actualizar el comentario.',
+        message: 'No se pudo actualizar la respuesta.',
       })
     } else {
       setStatus({
         type: 'success',
-        message: 'Comentario actualizado correctamente.',
+        message: 'Respuesta actualizada correctamente.',
       })
       setIsEditing(false)
       router.refresh()
@@ -110,14 +110,14 @@ export default function CommentActions({
     setLoading(false)
   }
 
-  const tooLong = content.length > COMMENT_MAX
+  const tooLong = content.length > REPLY_MAX
 
   if (isEditing) {
     return (
       <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
         <form onSubmit={handleUpdate} className="space-y-4">
           <div>
-            <label className="block text-sm mb-2">Editar comentario</label>
+            <label className="block text-sm mb-2">Editar respuesta</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -126,10 +126,10 @@ export default function CommentActions({
             />
             <div className="mt-2 flex justify-between text-xs">
               <span className="text-white/50">
-                Máximo {COMMENT_MAX} caracteres
+                Máximo {REPLY_MAX} caracteres
               </span>
               <span className={tooLong ? 'text-red-300' : 'text-white/50'}>
-                {content.length}/{COMMENT_MAX}
+                {content.length}/{REPLY_MAX}
               </span>
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function CommentActions({
         }}
         className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white disabled:opacity-50"
       >
-        Editar
+        Editar respuesta
       </button>
 
       <button
@@ -194,7 +194,7 @@ export default function CommentActions({
         onClick={handleDelete}
         className="rounded-lg border border-red-400/40 px-4 py-2 text-sm text-red-300 disabled:opacity-50"
       >
-        {loading ? 'Procesando...' : 'Eliminar'}
+        {loading ? 'Procesando...' : 'Eliminar respuesta'}
       </button>
     </div>
   )

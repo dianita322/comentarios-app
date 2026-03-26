@@ -3,11 +3,21 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import FormStatus from '@/components/form-status'
 
 type ReplyFormProps = {
   commentId: number
   userId: string
 }
+
+const REPLY_MAX = 300
+const MAX_IMAGE_SIZE_MB = 2
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+
+type StatusState = {
+  type: 'success' | 'error' | 'info'
+  message: string
+} | null
 
 export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
   const supabase = createClient()
@@ -18,7 +28,7 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+  const [status, setStatus] = useState<StatusState>(null)
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -26,24 +36,41 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
     const cleanContent = content.trim()
 
     if (!cleanContent && !imageFile) {
-      setMessage('Escribe una respuesta o sube una imagen antes de publicar.')
+      setStatus({
+        type: 'error',
+        message: 'Escribe una respuesta o sube una imagen antes de publicar.',
+      })
+      return
+    }
+
+    if (cleanContent.length > REPLY_MAX) {
+      setStatus({
+        type: 'error',
+        message: `La respuesta no puede superar los ${REPLY_MAX} caracteres.`,
+      })
       return
     }
 
     if (imageFile) {
       if (!imageFile.type.startsWith('image/')) {
-        setMessage('El archivo debe ser una imagen.')
+        setStatus({
+          type: 'error',
+          message: 'El archivo seleccionado debe ser una imagen.',
+        })
         return
       }
 
-      if (imageFile.size > 2 * 1024 * 1024) {
-        setMessage('La imagen no puede pesar más de 2 MB.')
+      if (imageFile.size > MAX_IMAGE_SIZE_BYTES) {
+        setStatus({
+          type: 'error',
+          message: `La imagen no puede pesar más de ${MAX_IMAGE_SIZE_MB} MB.`,
+        })
         return
       }
     }
 
     setLoading(true)
-    setMessage('')
+    setStatus(null)
 
     let imageUrl: string | null = null
 
@@ -60,7 +87,10 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
 
       if (uploadError) {
         console.error('Error subiendo imagen de la respuesta:', uploadError)
-        setMessage('No se pudo subir la imagen.')
+        setStatus({
+          type: 'error',
+          message: 'No se pudo subir la imagen.',
+        })
         setLoading(false)
         return
       }
@@ -82,20 +112,31 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
 
     if (error) {
       console.error('Error publicando respuesta:', error)
-      setMessage('No se pudo publicar la respuesta.')
+      setStatus({
+        type: 'error',
+        message: 'No se pudo publicar la respuesta.',
+      })
     } else {
       setContent('')
       setIsAnonymous(false)
       setImageFile(null)
+
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
-      setMessage('Respuesta publicada correctamente.')
+
+      setStatus({
+        type: 'success',
+        message: 'Respuesta publicada correctamente.',
+      })
       router.refresh()
     }
 
     setLoading(false)
   }
+
+  const tooLong = content.length > REPLY_MAX
+  const canSubmit = !loading && !tooLong
 
   return (
     <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
@@ -110,6 +151,14 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
             rows={4}
             className="w-full rounded-lg border border-white/10 bg-white/10 px-4 py-3 outline-none resize-none"
           />
+          <div className="mt-2 flex justify-between text-xs">
+            <span className="text-white/50">
+              Máximo {REPLY_MAX} caracteres
+            </span>
+            <span className={tooLong ? 'text-red-300' : 'text-white/50'}>
+              {content.length}/{REPLY_MAX}
+            </span>
+          </div>
         </div>
 
         <div>
@@ -118,12 +167,20 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              setImageFile(e.target.files?.[0] ?? null)
+              setStatus(null)
+            }}
             className="block w-full text-sm text-white/80"
           />
           <p className="mt-2 text-xs text-white/50">
-            Solo imágenes. Máximo 2 MB.
+            Solo imágenes. Máximo {MAX_IMAGE_SIZE_MB} MB.
           </p>
+          {imageFile ? (
+            <p className="mt-2 text-xs text-white/60">
+              Archivo seleccionado: {imageFile.name}
+            </p>
+          ) : null}
         </div>
 
         <label className="flex items-center gap-3 text-sm text-white/80">
@@ -136,11 +193,11 @@ export default function ReplyForm({ commentId, userId }: ReplyFormProps) {
           Responder como anónimo
         </label>
 
-        {message && <p className="text-sm text-yellow-300">{message}</p>}
+        {status ? <FormStatus type={status.type} message={status.message} /> : null}
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={!canSubmit}
           className="rounded-lg bg-white px-4 py-2 font-medium text-black disabled:opacity-50"
         >
           {loading ? 'Publicando...' : 'Publicar respuesta'}
