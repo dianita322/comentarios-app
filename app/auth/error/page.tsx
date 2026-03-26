@@ -1,24 +1,35 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Suspense } from "react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 async function ErrorContent({
   searchParams,
 }: {
-  searchParams: Promise<{ error: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
+  const rawError = params?.error;
+
+  let errorMessage = "Ocurrió un error no especificado.";
+
+  if (rawError) {
+    try {
+      errorMessage = decodeURIComponent(rawError);
+    } catch {
+      errorMessage = rawError;
+    }
+  }
 
   return (
     <>
-      {params?.error ? (
-        <p className="text-sm text-muted-foreground">
-          Code error: {params.error}
-        </p>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          An unspecified error occurred.
-        </p>
-      )}
+      <p className="text-sm text-muted-foreground">{errorMessage}</p>
+
+      <div className="mt-4 text-center text-sm">
+        <Link href="/auth/login" className="underline underline-offset-4">
+          Volver al inicio de sesión
+        </Link>
+      </div>
     </>
   );
 }
@@ -26,7 +37,7 @@ async function ErrorContent({
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ error: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
@@ -35,9 +46,10 @@ export default function Page({
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">
-                Sorry, something went wrong.
+                Ocurrió un problema
               </CardTitle>
             </CardHeader>
+
             <CardContent>
               <Suspense>
                 <ErrorContent searchParams={searchParams} />
