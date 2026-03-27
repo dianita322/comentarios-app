@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import AppContainer from "@/components/layout/app-container";
 import AppPageHeader from "@/components/layout/app-page-header";
 import EmptyState from "@/components/shared/empty-state";
@@ -7,6 +9,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function PostsPage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
@@ -51,13 +57,40 @@ export default async function PostsPage() {
       <AppPageHeader
         eyebrow="Blog"
         title="Publicaciones"
-        description="Desde hoy esta sección ya lee publicaciones reales desde Supabase. En el siguiente día construiremos el panel para crearlas desde la web."
+        description="Aquí aparecen las publicaciones públicas del sitio. Si has iniciado sesión, ya puedes ir al panel para crear las tuyas."
+        actions={
+          user ? (
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/posts/manage"
+                className="inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                Mis publicaciones
+              </Link>
+              <Link
+                href="/posts/new"
+                className="inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:scale-[1.02]"
+              >
+                Nueva publicación
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:scale-[1.02]"
+            >
+              Iniciar sesión para publicar
+            </Link>
+          )
+        }
       />
 
       {posts.length === 0 ? (
         <EmptyState
           title="Todavía no hay publicaciones"
-          description="Primero crearemos la tabla en Supabase y luego insertaremos al menos una publicación de prueba."
+          description="Crea la primera desde el panel de autor para que aparezca aquí."
+          ctaLabel={user ? "Crear publicación" : "Iniciar sesión"}
+          ctaHref={user ? "/posts/new" : "/auth/login"}
         />
       ) : (
         <section className="grid gap-6 md:grid-cols-2">
