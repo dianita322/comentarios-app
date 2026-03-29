@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { deletePostAction } from "@/app/posts/manage/actions";
 import AppContainer from "@/components/layout/app-container";
 import AppPageHeader from "@/components/layout/app-page-header";
+import DeletePostButton from "@/components/posts/delete-post-button";
 import EmptyState from "@/components/shared/empty-state";
 import type { PostRow } from "@/lib/posts/types";
 import { formatPostDate } from "@/lib/posts/utils";
@@ -11,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 type ManagePostsPageProps = {
   searchParams: Promise<{
     success?: string;
+    error?: string;
   }>;
 };
 
@@ -42,6 +45,7 @@ export default async function ManagePostsPage({
 
   const posts = (postsData ?? []) as PostRow[];
   const successType = params?.success;
+  const errorMessage = params?.error ? decodeURIComponent(params.error) : null;
 
   return (
     <AppContainer className="space-y-8">
@@ -68,6 +72,18 @@ export default async function ManagePostsPage({
       {successType === "updated" ? (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
           La publicación se actualizó correctamente.
+        </div>
+      ) : null}
+
+      {successType === "deleted" ? (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+          La publicación se eliminó correctamente.
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+          {errorMessage}
         </div>
       ) : null}
 
@@ -138,6 +154,8 @@ export default async function ManagePostsPage({
                           Ver publicación
                         </Link>
                       ) : null}
+
+                      <DeletePostButton postId={post.id} action={deletePostAction} />
                     </div>
                   </div>
                 </div>

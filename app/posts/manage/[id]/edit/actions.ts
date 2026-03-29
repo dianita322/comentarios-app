@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { slugifyPostTitle } from "@/lib/posts/slug";
+import { getPostCoverPathFromPublicUrl } from "@/lib/posts/storage";
 import type { PostRow } from "@/lib/posts/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -102,6 +103,13 @@ export async function updatePostAction(formData: FormData) {
     redirect(buildErrorRedirect(postId, "Ese slug ya existe. Usa uno diferente."));
   }
 
+  const oldCoverPath = getPostCoverPathFromPublicUrl(
+    existingPost.cover_image_url,
+    user.id,
+  );
+
+  const newCoverPath = getPostCoverPathFromPublicUrl(cover_image_url, user.id);
+
   const published_at =
     status === "published"
       ? existingPost.published_at ?? new Date().toISOString()
@@ -129,6 +137,19 @@ export async function updatePostAction(formData: FormData) {
         `Supabase devolvió este error: ${updateError.message}`,
       ),
     );
+  }
+
+  if (oldCoverPath && oldCoverPath !== newCoverPath) {
+    const { error: deleteOldCoverError } = await supabase.storage
+      .from("post-covers")
+      .remove([oldCoverPath]);
+
+    if (deleteOldCoverError) {
+      console.error(
+        "No se pudo eliminar la portada antigua tras actualizar:",
+        deleteOldCoverError,
+      );
+    }
   }
 
   revalidatePath("/posts");

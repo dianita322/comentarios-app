@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { updatePostAction } from "@/app/posts/manage/[id]/edit/actions";
+import { deletePostAction } from "@/app/posts/manage/actions";
 import AppContainer from "@/components/layout/app-container";
 import AppPageHeader from "@/components/layout/app-page-header";
+import DeletePostButton from "@/components/posts/delete-post-button";
 import PostEditorForm from "@/components/posts/post-editor-form";
 import type { PostRow } from "@/lib/posts/types";
 import { createClient } from "@/lib/supabase/server";
@@ -111,6 +113,18 @@ export default async function EditPostPage({
           submitLabel="Guardar cambios"
           pendingLabel="Actualizando..."
         />
+      </section>
+
+      <section className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
+        <h2 className="text-lg font-semibold text-red-200">Zona de peligro</h2>
+        <p className="mt-2 text-sm text-red-100/80">
+          Si eliminas esta publicación, también intentaremos borrar su portada
+          del bucket de Supabase si te pertenece.
+        </p>
+
+        <div className="mt-4">
+          <DeletePostButton postId={post.id} action={deletePostAction} />
+        </div>
       </section>
     </AppContainer>
   );
