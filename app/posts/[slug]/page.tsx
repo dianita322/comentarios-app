@@ -1,98 +1,133 @@
-import { notFound } from "next/navigation";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import AppContainer from "@/components/layout/app-container";
-import type { PostAuthorProfile, PostRow } from "@/lib/posts/types";
+import AppPageHeader from "@/components/layout/app-page-header";
+import EmptyState from "@/components/shared/empty-state";
+import type { PostRow } from "@/lib/posts/types";
 import { formatPostDate } from "@/lib/posts/utils";
 import { createClient } from "@/lib/supabase/server";
 
-type PostDetailPageProps = {
-  params: {
-    slug: string;
-  };
+type ManagePostsPageProps = {
+  searchParams: Promise<{
+    success?: string;
+  }>;
 };
 
-export default async function PostDetailPage({
-  params,
-}: PostDetailPageProps) {
-  const { slug } = params;
+export default async function ManagePostsPage({
+  searchParams,
+}: ManagePostsPageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
 
-  const { data: postData, error: postError } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  const { data: postsData, error: postsError } = await supabase
     .from("posts")
     .select(
       "id, author_id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at, updated_at",
     )
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle();
+    .eq("author_id", user.id)
+    .order("created_at", { ascending: false });
 
-  if (postError) {
-    console.error("Error cargando publicación:", postError);
+  if (postsError) {
+    console.error("Error cargando publicaciones del autor:", postsError);
   }
 
-  if (!postData) {
-    notFound();
-  }
-
-  const post = postData as PostRow;
-  let authorName: string | null = null;
-
-  if (post.author_id) {
-    const { data: authorData, error: authorError } = await supabase
-      .from("profiles")
-      .select("id, display_name, username")
-      .eq("id", post.author_id)
-      .maybeSingle();
-
-    if (authorError) {
-      console.error("Error cargando autor:", authorError);
-    } else if (authorData) {
-      const author = authorData as PostAuthorProfile;
-      authorName = author.display_name || author.username || null;
-    }
-  }
+  const posts = (postsData ?? []) as PostRow[];
+  const showCreatedMessage = params?.success === "created";
 
   return (
     <AppContainer className="space-y-8">
-      <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-        {post.cover_image_url ? (
-          <div className="aspect-[16/7] w-full overflow-hidden bg-black/30">
-            <img
-              src={post.cover_image_url}
-              alt={post.title}
-              className="h-full w-full object-cover"
-            />
-          </div>
-        ) : null}
+      <AppPageHeader
+        eyebrow="Panel de autor"
+        title="Mis publicaciones"
+        description="Aquí verás tus borradores y tus publicaciones ya visibles para el público."
+        actions={
+          <Link
+            href="/posts/new"
+            className="inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:scale-[1.02]"
+          >
+            Crear nueva publicación
+          </Link>
+        }
+      />
 
-        <div className="p-6 md:p-8">
-          <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/50">
-            <span>Publicación</span>
-            <span>•</span>
-            <span>{formatPostDate(post.published_at ?? post.created_at)}</span>
-            {authorName ? (
-              <>
-                <span>•</span>
-                <span>{authorName}</span>
-              </>
-            ) : null}
-          </div>
-
-          <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
-            {post.title}
-          </h1>
-
-          {post.excerpt ? (
-            <p className="mt-4 text-base text-white/70 md:text-lg">
-              {post.excerpt}
-            </p>
-          ) : null}
-
-          <div className="mt-8 whitespace-pre-wrap text-sm leading-7 text-white/85 md:text-base">
-            {post.content}
-          </div>
+      {showCreatedMessage ? (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+          La publicación se guardó correctamente.
         </div>
-      </article>
+      ) : null}
+
+      {posts.length === 0 ? (
+        <EmptyState
+          title="Todavía no has creado publicaciones"
+          description="Empieza creando tu primera publicación o borrador desde el panel."
+          ctaLabel="Crear publicación"
+          ctaHref="/posts/new"
+        />
+      ) : (
+        <section className="grid gap-5">
+          {posts.map((post) => {
+            const isPublished = post.status === "published";
+
+            return (
+              <article
+                key={post.id}
+                className="rounded-2xl border border-white/10 bg-white/5 p-5"
+              >
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/50">
+                      <span>{isPublished ? "Publicada" : "Borrador"}</span>
+                      <span>•</span>
+                      <span>
+                        {isPublished
+                          ? formatPostDate(post.published_at ?? post.created_at)
+                          : `Creada el ${formatPostDate(post.created_at)}`}
+                      </span>
+                    </div>
+
+                    <h2 className="mt-3 text-xl font-semibold">{post.title}</h2>
+
+                    <p className="mt-2 break-all text-sm text-white/50">
+                      /posts/{post.slug}
+                    </p>
+
+                    <p className="mt-3 text-sm text-white/70">
+                      {post.excerpt?.trim() || "Sin resumen corto."}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {isPublished ? (
+                      <Link
+                        href={`/posts/${post.slug}`}
+                        className="inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                      >
+                        Ver publicación
+                      </Link>
+                    ) : null}
+
+                    <Link
+                      href="/posts/new"
+                      className="inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                    >
+                      Crear otra
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
     </AppContainer>
   );
 }

@@ -4,19 +4,20 @@ import { redirect } from "next/navigation";
 import AppContainer from "@/components/layout/app-container";
 import AppPageHeader from "@/components/layout/app-page-header";
 import EmptyState from "@/components/shared/empty-state";
-import { formatPostDate } from "@/lib/posts/utils";
 import type { PostRow } from "@/lib/posts/types";
+import { formatPostDate } from "@/lib/posts/utils";
 import { createClient } from "@/lib/supabase/server";
 
 type ManagePostsPageProps = {
-  searchParams?: {
+  searchParams: Promise<{
     success?: string;
-  };
+  }>;
 };
 
 export default async function ManagePostsPage({
   searchParams,
 }: ManagePostsPageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -40,7 +41,7 @@ export default async function ManagePostsPage({
   }
 
   const posts = (postsData ?? []) as PostRow[];
-  const showCreatedMessage = searchParams?.success === "created";
+  const showCreatedMessage = params?.success === "created";
 
   return (
     <AppContainer className="space-y-8">
@@ -79,47 +80,59 @@ export default async function ManagePostsPage({
             return (
               <article
                 key={post.id}
-                className="rounded-2xl border border-white/10 bg-white/5 p-5"
+                className="overflow-hidden rounded-2xl border border-white/10 bg-white/5"
               >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/50">
-                      <span>{isPublished ? "Publicada" : "Borrador"}</span>
-                      <span>•</span>
-                      <span>
-                        {isPublished
-                          ? formatPostDate(post.published_at ?? post.created_at)
-                          : `Creada el ${formatPostDate(post.created_at)}`}
-                      </span>
+                {post.cover_image_url ? (
+                  <div className="h-44 w-full overflow-hidden bg-black/30">
+                    <img
+                      src={post.cover_image_url}
+                      alt={post.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+
+                <div className="p-5">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/50">
+                        <span>{isPublished ? "Publicada" : "Borrador"}</span>
+                        <span>•</span>
+                        <span>
+                          {isPublished
+                            ? formatPostDate(post.published_at ?? post.created_at)
+                            : `Creada el ${formatPostDate(post.created_at)}`}
+                        </span>
+                      </div>
+
+                      <h2 className="mt-3 text-xl font-semibold">{post.title}</h2>
+
+                      <p className="mt-2 break-all text-sm text-white/50">
+                        /posts/{post.slug}
+                      </p>
+
+                      <p className="mt-3 text-sm text-white/70">
+                        {post.excerpt?.trim() || "Sin resumen corto."}
+                      </p>
                     </div>
 
-                    <h2 className="mt-3 text-xl font-semibold">{post.title}</h2>
+                    <div className="flex flex-wrap gap-3">
+                      {isPublished ? (
+                        <Link
+                          href={`/posts/${post.slug}`}
+                          className="inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                        >
+                          Ver publicación
+                        </Link>
+                      ) : null}
 
-                    <p className="mt-2 break-all text-sm text-white/50">
-                      /posts/{post.slug}
-                    </p>
-
-                    <p className="mt-3 text-sm text-white/70">
-                      {post.excerpt?.trim() || "Sin resumen corto."}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    {isPublished ? (
                       <Link
-                        href={`/posts/${post.slug}`}
+                        href="/posts/new"
                         className="inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
                       >
-                        Ver publicación
+                        Crear otra
                       </Link>
-                    ) : null}
-
-                    <Link
-                      href="/posts/new"
-                      className="inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                    >
-                      Crear otra
-                    </Link>
+                    </div>
                   </div>
                 </div>
               </article>

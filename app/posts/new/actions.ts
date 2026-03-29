@@ -1,12 +1,13 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { slugifyPostTitle } from "@/lib/posts/slug";
 import { createClient } from "@/lib/supabase/server";
 
-function encodeError(message: string) {
-  return encodeURIComponent(message);
+function redirectWithError(message: string) {
+  redirect(`/posts/new?error=${encodeURIComponent(message)}`);
 }
 
 export async function createPostAction(formData: FormData) {
@@ -14,7 +15,13 @@ export async function createPostAction(formData: FormData) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+
+  if (userError) {
+    console.error("Error obteniendo el usuario autenticado:", userError);
+    redirectWithError("No se pudo validar tu sesión. Vuelve a iniciar sesión.");
+  }
 
   if (!user) {
     redirect("/auth/login");
@@ -32,36 +39,41 @@ export async function createPostAction(formData: FormData) {
   const cover_image_url = coverImageUrlRaw || null;
 
   if (title.length < 4) {
-    redirect(
-      `/posts/new?error=${encodeError("El título debe tener al menos 4 caracteres.")}`,
-    );
+    redirectWithError("El título debe tener al menos 4 caracteres.");
   }
 
   if (!slug) {
-    redirect(
-      `/posts/new?error=${encodeError("No se pudo generar un slug válido. Revisa el título.")}`,
-    );
+    redirectWithError("No se pudo generar un slug válido. Revisa el título.");
   }
 
   if (content.length < 20) {
-    redirect(
-      `/posts/new?error=${encodeError("El contenido debe tener al menos 20 caracteres.")}`,
-    );
+    redirectWithError("El contenido debe tener al menos 20 caracteres.");
   }
 
-  const { data: existingPost } = await supabase
+  if (coverImageUrlRaw) {
+    try {
+      new URL(coverImageUrlRaw);
+    } catch {
+      redirectWithError("La URL de la portada no es válida.");
+    }
+  }
+
+  const { data: existingPost, error: existingPostError } = await supabase
     .from("posts")
     .select("id")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (existingPost) {
-    redirect(
-      `/posts/new?error=${encodeError("Ese slug ya existe. Cámbialo para continuar.")}`,
-    );
+  if (existingPostError) {
+    console.error("Error comprobando slug existente:", existingPostError);
+    redirectWithError("No se pudo validar el slug. Inténtalo de nuevo.");
   }
 
-  const { error } = await supabase.from("posts").insert({
+  if (existingPost) {
+    redirectWithError("Ese slug ya existe. Cámbialo para continuar.");
+  }
+
+  const { error: insertError } = await supabase.from("posts").insert({
     author_id: user.id,
     title,
     slug,
@@ -72,9 +84,27 @@ export async function createPostAction(formData: FormData) {
     published_at: status === "published" ? new Date().toISOString() : null,
   });
 
-  if (error) {
-    redirect(`/posts/new?error=${encodeError(error.message)}`);
+  if (insertError) {
+    console.error("Error insertando publicación:", insertError);
+
+    const message = insertError.message.toLowerCase();
+
+    if (message.includes("row-level security")) {
+      redirectWithError(
+        "Supabase rechazó la inserción por permisos (RLS). Revisa las políticas de la tabla posts.",
+      );
+    }
+
+    if (message.includes("duplicate key")) {
+      redirectWithError("Ese slug ya existe. Usa otro diferente.");
+    }
+
+    redirectWithError(`Supabase devolvió este error: ${insertError.message}`);
   }
+
+  revalidatePath("/posts");
+  revalidatePath("/posts/manage");
+  revalidatePath(`/posts/${slug}`);
 
   redirect("/posts/manage?success=created");
 }
