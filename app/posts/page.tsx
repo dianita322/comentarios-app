@@ -1,26 +1,46 @@
 import Link from "next/link";
 
+import PostCategoryFilter from "@/components/posts/post-category-filter";
 import AppContainer from "@/components/layout/app-container";
 import AppPageHeader from "@/components/layout/app-page-header";
 import EmptyState from "@/components/shared/empty-state";
 import PostCard from "@/components/posts/post-card";
-import type { PostAuthorProfile, PostRow } from "@/lib/posts/types";
+import { isValidPostCategory } from "@/lib/posts/categories";
+import type { PostAuthorProfile, PostCategory, PostRow } from "@/lib/posts/types";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function PostsPage() {
+type PostsPageProps = {
+  searchParams: Promise<{
+    category?: string;
+  }>;
+};
+
+export default async function PostsPage({ searchParams }: PostsPageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: postsData, error: postsError } = await supabase
+  const rawCategory = params?.category?.trim() ?? "";
+  const currentCategory: PostCategory | null = isValidPostCategory(rawCategory)
+    ? rawCategory
+    : null;
+
+  let postsQuery = supabase
     .from("posts")
     .select(
-      "id, author_id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at, updated_at",
+      "id, author_id, title, slug, excerpt, content, cover_image_url, category, status, published_at, created_at, updated_at",
     )
     .eq("status", "published")
     .order("published_at", { ascending: false });
+
+  if (currentCategory) {
+    postsQuery = postsQuery.eq("category", currentCategory);
+  }
+
+  const { data: postsData, error: postsError } = await postsQuery;
 
   if (postsError) {
     console.error("Error cargando publicaciones:", postsError);
@@ -57,7 +77,7 @@ export default async function PostsPage() {
       <AppPageHeader
         eyebrow="Blog"
         title="Publicaciones"
-        description="Aquí aparecen las publicaciones públicas del sitio. Si has iniciado sesión, ya puedes ir al panel para crear las tuyas."
+        description="Aquí aparecen las publicaciones públicas del sitio. Ahora también puedes filtrarlas por categoría para navegar mejor por el contenido."
         actions={
           user ? (
             <div className="flex flex-wrap gap-3">
@@ -85,10 +105,20 @@ export default async function PostsPage() {
         }
       />
 
+      <PostCategoryFilter currentCategory={currentCategory} />
+
       {posts.length === 0 ? (
         <EmptyState
-          title="Todavía no hay publicaciones"
-          description="Crea la primera desde el panel de autor para que aparezca aquí."
+          title={
+            currentCategory
+              ? "No hay publicaciones en esta categoría"
+              : "Todavía no hay publicaciones"
+          }
+          description={
+            currentCategory
+              ? "Prueba otra categoría o crea una publicación nueva desde el panel."
+              : "Crea la primera desde el panel de autor para que aparezca aquí."
+          }
           ctaLabel={user ? "Crear publicación" : "Iniciar sesión"}
           ctaHref={user ? "/posts/new" : "/auth/login"}
         />

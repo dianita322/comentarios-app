@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { isValidPostCategory } from "@/lib/posts/categories";
 import { slugifyPostTitle } from "@/lib/posts/slug";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,11 +33,13 @@ export async function createPostAction(formData: FormData) {
   const excerpt = String(formData.get("excerpt") ?? "").trim();
   const content = String(formData.get("content") ?? "").trim();
   const coverImageUrlRaw = String(formData.get("cover_image_url") ?? "").trim();
+  const categoryRaw = String(formData.get("category") ?? "general").trim();
   const statusRaw = String(formData.get("status") ?? "draft").trim();
 
   const slug = slugifyPostTitle(rawSlug || title);
   const status = statusRaw === "published" ? "published" : "draft";
   const cover_image_url = coverImageUrlRaw || null;
+  const category = isValidPostCategory(categoryRaw) ? categoryRaw : "general";
 
   if (title.length < 4) {
     redirectWithError("El título debe tener al menos 4 caracteres.");
@@ -80,6 +83,7 @@ export async function createPostAction(formData: FormData) {
     excerpt: excerpt || null,
     content,
     cover_image_url,
+    category,
     status,
     published_at: status === "published" ? new Date().toISOString() : null,
   });

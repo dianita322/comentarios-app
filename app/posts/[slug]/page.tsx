@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { getPostCategoryLabel } from "@/lib/posts/categories";
 import AppContainer from "@/components/layout/app-container";
 import PostContent from "@/components/posts/post-content";
 import type { PostAuthorProfile, PostRow } from "@/lib/posts/types";
@@ -21,7 +22,7 @@ export default async function PostDetailPage({
   const { data: postData, error: postError } = await supabase
     .from("posts")
     .select(
-      "id, author_id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at, updated_at",
+      "id, author_id, title, slug, excerpt, content, cover_image_url, category, status, published_at, created_at, updated_at",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -69,8 +70,9 @@ export default async function PostDetailPage({
 
         <div className="p-6 md:p-8">
           <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/50">
-            <span>Publicación</span>
-            <span>•</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-white/70">
+              {getPostCategoryLabel(post.category)}
+            </span>
             <span>{formatPostDate(post.published_at ?? post.created_at)}</span>
             {authorName ? (
               <>

@@ -1,5 +1,12 @@
 export type PostStatus = "draft" | "published";
 
+export type PostCategory =
+  | "general"
+  | "tutorial"
+  | "proyecto"
+  | "actualizacion"
+  | "opinion";
+
 export type PostRow = {
   id: number;
   author_id: string | null;
@@ -8,6 +15,7 @@ export type PostRow = {
   excerpt: string | null;
   content: string;
   cover_image_url: string | null;
+  category: PostCategory;
   status: PostStatus;
   published_at: string | null;
   created_at: string;

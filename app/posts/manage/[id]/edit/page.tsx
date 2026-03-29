@@ -45,7 +45,7 @@ export default async function EditPostPage({
   const { data: postData, error: postError } = await supabase
     .from("posts")
     .select(
-      "id, author_id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at, updated_at",
+      "id, author_id, title, slug, excerpt, content, cover_image_url, category, status, published_at, created_at, updated_at",
     )
     .eq("id", postId)
     .eq("author_id", user.id)
@@ -69,7 +69,7 @@ export default async function EditPostPage({
       <AppPageHeader
         eyebrow="Panel de autor"
         title="Editar publicación"
-        description="Aquí puedes actualizar el título, slug, contenido, estado y portada de una publicación existente. Ahora también tienes vista previa del formato."
+        description="Aquí puedes actualizar el título, slug, categoría, contenido, estado y portada de una publicación existente. Ahora también tienes vista previa del formato."
         actions={
           <div className="flex flex-wrap gap-3">
             <Link
@@ -108,6 +108,7 @@ export default async function EditPostPage({
             excerpt: post.excerpt,
             content: post.content,
             coverImageUrl: post.cover_image_url,
+            category: post.category,
             status: post.status,
           }}
           submitLabel="Guardar cambios"

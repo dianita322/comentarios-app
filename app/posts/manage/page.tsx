@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { getPostCategoryLabel } from "@/lib/posts/categories";
 import { deletePostAction } from "@/app/posts/manage/actions";
 import AppContainer from "@/components/layout/app-container";
 import AppPageHeader from "@/components/layout/app-page-header";
@@ -34,7 +35,7 @@ export default async function ManagePostsPage({
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
     .select(
-      "id, author_id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at, updated_at",
+      "id, author_id, title, slug, excerpt, content, cover_image_url, category, status, published_at, created_at, updated_at",
     )
     .eq("author_id", user.id)
     .order("created_at", { ascending: false });
@@ -120,6 +121,8 @@ export default async function ManagePostsPage({
                     <div>
                       <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/50">
                         <span>{isPublished ? "Publicada" : "Borrador"}</span>
+                        <span>•</span>
+                        <span>{getPostCategoryLabel(post.category)}</span>
                         <span>•</span>
                         <span>
                           {isPublished

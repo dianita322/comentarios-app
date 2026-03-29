@@ -4,6 +4,9 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import {
+  postCategoryOptions,
+} from "@/lib/posts/categories";
 import PostContent from "@/components/posts/post-content";
 import PostFormatHelp from "@/components/posts/post-format-help";
 import { Button } from "@/components/ui/button";
@@ -11,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { slugifyPostTitle } from "@/lib/posts/slug";
 import { createClient } from "@/lib/supabase/client";
-import type { PostStatus } from "@/lib/posts/types";
+import type { PostCategory, PostStatus } from "@/lib/posts/types";
 
 type PostEditorInitialData = {
   id?: number;
@@ -20,6 +23,7 @@ type PostEditorInitialData = {
   excerpt?: string | null;
   content?: string;
   coverImageUrl?: string | null;
+  category?: PostCategory;
   status?: PostStatus;
 };
 
@@ -70,7 +74,12 @@ export default function PostEditorForm({
 
   const [excerpt, setExcerpt] = useState(initialData?.excerpt ?? "");
   const [content, setContent] = useState(initialData?.content ?? "");
-  const [status, setStatus] = useState<PostStatus>(initialData?.status ?? "draft");
+  const [category, setCategory] = useState<PostCategory>(
+    initialData?.category ?? "general",
+  );
+  const [status, setStatus] = useState<PostStatus>(
+    initialData?.status ?? "draft",
+  );
 
   const [manualCoverUrl, setManualCoverUrl] = useState(
     initialData?.coverImageUrl ?? "",
@@ -189,17 +198,39 @@ export default function PostEditorForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="excerpt">Resumen corto</Label>
-        <textarea
-          id="excerpt"
-          name="excerpt"
-          rows={3}
-          value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          placeholder="Escribe un resumen corto para la tarjeta de la publicación"
-          className="flex min-h-[96px] w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus-visible:ring-2 focus-visible:ring-white/20"
-        />
+      <div className="grid gap-6 md:grid-cols-[1.4fr_0.8fr]">
+        <div className="space-y-2">
+          <Label htmlFor="excerpt">Resumen corto</Label>
+          <textarea
+            id="excerpt"
+            name="excerpt"
+            rows={3}
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            placeholder="Escribe un resumen corto para la tarjeta de la publicación"
+            className="flex min-h-[96px] w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus-visible:ring-2 focus-visible:ring-white/20"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category">Categoría</Label>
+          <select
+            id="category"
+            name="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as PostCategory)}
+            className="flex h-10 w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+          >
+            {postCategoryOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-white/50">
+            La categoría servirá para organizar y filtrar las publicaciones.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">

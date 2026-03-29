@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { isValidPostCategory } from "@/lib/posts/categories";
 import { slugifyPostTitle } from "@/lib/posts/slug";
 import { getPostCoverPathFromPublicUrl } from "@/lib/posts/storage";
 import type { PostRow } from "@/lib/posts/types";
@@ -39,7 +40,7 @@ export async function updatePostAction(formData: FormData) {
   const { data: existingPostData, error: existingPostError } = await supabase
     .from("posts")
     .select(
-      "id, author_id, title, slug, excerpt, content, cover_image_url, status, published_at, created_at, updated_at",
+      "id, author_id, title, slug, excerpt, content, cover_image_url, category, status, published_at, created_at, updated_at",
     )
     .eq("id", postId)
     .eq("author_id", user.id)
@@ -61,11 +62,13 @@ export async function updatePostAction(formData: FormData) {
   const excerpt = String(formData.get("excerpt") ?? "").trim();
   const content = String(formData.get("content") ?? "").trim();
   const coverImageUrlRaw = String(formData.get("cover_image_url") ?? "").trim();
+  const categoryRaw = String(formData.get("category") ?? "general").trim();
   const statusRaw = String(formData.get("status") ?? "draft").trim();
 
   const slug = slugifyPostTitle(rawSlug || title);
   const status = statusRaw === "published" ? "published" : "draft";
   const cover_image_url = coverImageUrlRaw || null;
+  const category = isValidPostCategory(categoryRaw) ? categoryRaw : "general";
 
   if (title.length < 4) {
     redirect(buildErrorRedirect(postId, "El título debe tener al menos 4 caracteres."));
@@ -123,6 +126,7 @@ export async function updatePostAction(formData: FormData) {
       excerpt: excerpt || null,
       content,
       cover_image_url,
+      category,
       status,
       published_at,
     })

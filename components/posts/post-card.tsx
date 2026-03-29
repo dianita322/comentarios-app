@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { getPostCategoryLabel } from "@/lib/posts/categories";
 import { formatPostDate, getPostSummary } from "@/lib/posts/utils";
 import type { PostRow } from "@/lib/posts/types";
 
@@ -24,6 +25,9 @@ export default function PostCard({ post, authorName }: PostCardProps) {
 
       <div className="p-5">
         <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">
+          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-white/70">
+            {getPostCategoryLabel(post.category)}
+          </span>
           <span>{formatPostDate(post.published_at ?? post.created_at)}</span>
           {authorName ? <span>• Por {authorName}</span> : null}
         </div>
