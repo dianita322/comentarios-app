@@ -13,6 +13,7 @@ export default function PostCard({ post, authorName }: PostCardProps) {
     <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
       {post.cover_image_url ? (
         <div className="aspect-[16/8] w-full overflow-hidden bg-black/30">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={post.cover_image_url}
             alt={post.title}

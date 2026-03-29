@@ -32,7 +32,7 @@ export default async function NewPostPage({ searchParams }: NewPostPageProps) {
       <AppPageHeader
         eyebrow="Panel de autor"
         title="Nueva publicación"
-        description="Desde aquí ya puedes crear publicaciones con portada. La imagen se subirá a Supabase Storage antes de guardar el post."
+        description="Desde aquí ya puedes crear publicaciones con formato visual más bonito, vista previa en vivo y portada subida a Supabase Storage."
         actions={
           <Link
             href="/posts/manage"

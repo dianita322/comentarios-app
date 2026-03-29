@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import PostContent from "@/components/posts/post-content";
+import PostFormatHelp from "@/components/posts/post-format-help";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -205,18 +207,36 @@ export default function PostEditorForm({
         <textarea
           id="content"
           name="content"
-          rows={14}
+          rows={16}
           minLength={20}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Escribe aquí el contenido completo de la publicación"
-          className="flex min-h-[280px] w-full rounded-md border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none placeholder:text-white/35 focus-visible:ring-2 focus-visible:ring-white/20"
+          className="flex min-h-[320px] w-full rounded-md border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none placeholder:text-white/35 focus-visible:ring-2 focus-visible:ring-white/20"
           required
         />
         <p className="text-xs text-white/50">
-          Por ahora el contenido será texto plano. Luego lo mejoraremos.
+          Ahora ya admite títulos, listas, negritas, cursivas, citas, enlaces y código simple.
         </p>
       </div>
+
+      <PostFormatHelp />
+
+      <section className="space-y-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div>
+          <h3 className="text-sm font-semibold">Vista previa del contenido</h3>
+          <p className="mt-1 text-xs text-white/50">
+            Aquí puedes comprobar cómo se verá tu publicación antes de guardarla.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <PostContent
+            content={content}
+            emptyMessage="Empieza a escribir contenido para ver la vista previa."
+          />
+        </div>
+      </section>
 
       <section className="space-y-4 rounded-2xl border border-white/10 bg-black/20 p-4">
         <div>
@@ -297,9 +317,9 @@ export default function PostEditorForm({
           id="status"
           name="status"
           value={status}
-          onChange={(e) => setStatus(
-            e.target.value === "published" ? "published" : "draft",
-          )}
+          onChange={(e) =>
+            setStatus(e.target.value === "published" ? "published" : "draft")
+          }
           className="flex h-10 w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/20"
         >
           <option value="draft">Borrador</option>

@@ -69,7 +69,7 @@ export default async function EditPostPage({
       <AppPageHeader
         eyebrow="Panel de autor"
         title="Editar publicación"
-        description="Aquí puedes actualizar el título, slug, contenido, estado y portada de una publicación existente."
+        description="Aquí puedes actualizar el título, slug, contenido, estado y portada de una publicación existente. Ahora también tienes vista previa del formato."
         actions={
           <div className="flex flex-wrap gap-3">
             <Link

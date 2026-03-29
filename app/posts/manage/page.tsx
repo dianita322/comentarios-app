@@ -106,6 +106,7 @@ export default async function ManagePostsPage({
               >
                 {post.cover_image_url ? (
                   <div className="h-44 w-full overflow-hidden bg-black/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={post.cover_image_url}
                       alt={post.title}
