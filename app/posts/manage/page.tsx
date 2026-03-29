@@ -41,7 +41,7 @@ export default async function ManagePostsPage({
   }
 
   const posts = (postsData ?? []) as PostRow[];
-  const showCreatedMessage = params?.success === "created";
+  const successType = params?.success;
 
   return (
     <AppContainer className="space-y-8">
@@ -59,9 +59,15 @@ export default async function ManagePostsPage({
         }
       />
 
-      {showCreatedMessage ? (
+      {successType === "created" ? (
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
           La publicación se guardó correctamente.
+        </div>
+      ) : null}
+
+      {successType === "updated" ? (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+          La publicación se actualizó correctamente.
         </div>
       ) : null}
 
@@ -117,6 +123,13 @@ export default async function ManagePostsPage({
                     </div>
 
                     <div className="flex flex-wrap gap-3">
+                      <Link
+                        href={`/posts/manage/${post.id}/edit`}
+                        className="inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:scale-[1.02]"
+                      >
+                        Editar
+                      </Link>
+
                       {isPublished ? (
                         <Link
                           href={`/posts/${post.slug}`}
@@ -125,13 +138,6 @@ export default async function ManagePostsPage({
                           Ver publicación
                         </Link>
                       ) : null}
-
-                      <Link
-                        href="/posts/new"
-                        className="inline-flex rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                      >
-                        Crear otra
-                      </Link>
                     </div>
                   </div>
                 </div>

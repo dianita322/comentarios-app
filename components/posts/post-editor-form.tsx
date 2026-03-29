@@ -9,13 +9,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { slugifyPostTitle } from "@/lib/posts/slug";
 import { createClient } from "@/lib/supabase/client";
+import type { PostStatus } from "@/lib/posts/types";
+
+type PostEditorInitialData = {
+  id?: number;
+  title?: string;
+  slug?: string;
+  excerpt?: string | null;
+  content?: string;
+  coverImageUrl?: string | null;
+  status?: PostStatus;
+};
 
 type PostEditorFormProps = {
   action: (formData: FormData) => void | Promise<void>;
   userId: string;
+  initialData?: PostEditorInitialData;
+  submitLabel?: string;
+  pendingLabel?: string;
 };
 
-function SubmitButton({ isUploading }: { isUploading: boolean }) {
+function SubmitButton({
+  isUploading,
+  submitLabel,
+  pendingLabel,
+}: {
+  isUploading: boolean;
+  submitLabel: string;
+  pendingLabel: string;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -25,10 +47,10 @@ function SubmitButton({ isUploading }: { isUploading: boolean }) {
       disabled={pending || isUploading}
     >
       {pending
-        ? "Guardando..."
+        ? pendingLabel
         : isUploading
           ? "Subiendo imagen..."
-          : "Guardar publicación"}
+          : submitLabel}
     </Button>
   );
 }
@@ -36,12 +58,21 @@ function SubmitButton({ isUploading }: { isUploading: boolean }) {
 export default function PostEditorForm({
   action,
   userId,
+  initialData,
+  submitLabel = "Guardar publicación",
+  pendingLabel = "Guardando...",
 }: PostEditorFormProps) {
-  const [title, setTitle] = useState("");
-  const [manualSlug, setManualSlug] = useState(false);
-  const [slug, setSlug] = useState("");
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [manualSlug, setManualSlug] = useState(Boolean(initialData?.slug));
+  const [slug, setSlug] = useState(initialData?.slug ?? "");
 
-  const [manualCoverUrl, setManualCoverUrl] = useState("");
+  const [excerpt, setExcerpt] = useState(initialData?.excerpt ?? "");
+  const [content, setContent] = useState(initialData?.content ?? "");
+  const [status, setStatus] = useState<PostStatus>(initialData?.status ?? "draft");
+
+  const [manualCoverUrl, setManualCoverUrl] = useState(
+    initialData?.coverImageUrl ?? "",
+  );
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -114,6 +145,10 @@ export default function PostEditorForm({
 
   return (
     <form action={action} className="space-y-6">
+      {initialData?.id ? (
+        <input type="hidden" name="post_id" value={initialData.id} />
+      ) : null}
+
       <input type="hidden" name="cover_image_url" value={finalCoverImageUrl} />
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -158,6 +193,8 @@ export default function PostEditorForm({
           id="excerpt"
           name="excerpt"
           rows={3}
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
           placeholder="Escribe un resumen corto para la tarjeta de la publicación"
           className="flex min-h-[96px] w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus-visible:ring-2 focus-visible:ring-white/20"
         />
@@ -170,6 +207,8 @@ export default function PostEditorForm({
           name="content"
           rows={14}
           minLength={20}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
           placeholder="Escribe aquí el contenido completo de la publicación"
           className="flex min-h-[280px] w-full rounded-md border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none placeholder:text-white/35 focus-visible:ring-2 focus-visible:ring-white/20"
           required
@@ -183,13 +222,13 @@ export default function PostEditorForm({
         <div>
           <h3 className="text-sm font-semibold">Portada de la publicación</h3>
           <p className="mt-1 text-xs text-white/50">
-            Desde hoy puedes subir una imagen desde tu PC al bucket de Supabase.
+            Puedes mantener la portada actual, quitarla o reemplazarla por una nueva.
           </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="cover_file">Subir imagen desde tu PC</Label>
+            <Label htmlFor="cover_file">Subir nueva imagen desde tu PC</Label>
             <Input
               id="cover_file"
               type="file"
@@ -213,7 +252,7 @@ export default function PostEditorForm({
               disabled={Boolean(uploadedImageUrl)}
             />
             <p className="text-xs text-white/50">
-              Si ya subiste una imagen, este campo queda desactivado para evitar conflictos.
+              Si ya subiste una imagen nueva, este campo queda desactivado para evitar conflictos.
             </p>
           </div>
         </div>
@@ -257,7 +296,10 @@ export default function PostEditorForm({
         <select
           id="status"
           name="status"
-          defaultValue="draft"
+          value={status}
+          onChange={(e) => setStatus(
+            e.target.value === "published" ? "published" : "draft",
+          )}
           className="flex h-10 w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/20"
         >
           <option value="draft">Borrador</option>
@@ -275,7 +317,11 @@ export default function PostEditorForm({
         </p>
       </div>
 
-      <SubmitButton isUploading={isUploading} />
+      <SubmitButton
+        isUploading={isUploading}
+        submitLabel={submitLabel}
+        pendingLabel={pendingLabel}
+      />
     </form>
   );
 }
