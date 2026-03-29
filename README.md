@@ -13,46 +13,42 @@ La app ya incluye:
 - reacciones
 - imágenes
 - perfil de usuario
-- rutas base para futuras secciones de publicaciones y proyectos
-
-## Estructura actual
-
-- `app/` → rutas principales de la aplicación
-- `components/` → componentes reutilizables
-- `lib/` → utilidades, configuración y helpers
-- `sql/` → scripts SQL del proyecto
+- tema oscuro por defecto
+- sección pública de publicaciones
+- detalle por slug para cada publicación
+- panel para crear publicaciones desde la propia web
+- subida de imágenes de portada a Supabase Storage
+- panel para ver borradores y publicaciones del autor
+- edición de publicaciones existentes desde el panel de autor
+- eliminación de publicaciones
+- limpieza básica de portadas antiguas al editar o eliminar
+- formato visual tipo Markdown sencillo para el contenido
+- vista previa en vivo dentro del editor
+- categorías para publicaciones
+- filtrado básico por categoría en la vista pública
+- sección real de proyectos
+- categorías y filtros para proyectos
+- panel de proyectos solo para admin
+- edición y eliminación de proyectos
+- subida de portadas de proyectos desde la web
+- limpieza básica de portadas de proyectos al editar o eliminar
 
 ## Rutas principales
 
 - `/` → inicio
 - `/feed` → feed de comentarios
-- `/posts` → base de publicaciones
-- `/projects` → base de proyectos
+- `/posts` → listado público de publicaciones
+- `/posts/new` → crear publicación
+- `/posts/manage` → ver mis publicaciones
+- `/posts/manage/[id]/edit` → editar publicación
+- `/posts/[slug]` → detalle de publicación
+- `/projects` → listado público de proyectos
+- `/projects/new` → crear proyecto
+- `/projects/manage` → ver mis proyectos
+- `/projects/manage/[id]/edit` → editar proyecto
+- `/projects/[slug]` → detalle de proyecto
 - `/account` → cuenta del usuario
-- `/auth/login` → iniciar sesión
-- `/auth/sign-up` → crear cuenta
-- `/auth/forgot-password` → recuperar contraseña
-- `/auth/update-password` → cambiar contraseña
 
-## Objetivo del proyecto
+## Nota
 
-Esta base se está convirtiendo por fases en una plataforma más completa para:
-
-- publicar contenido tipo blog
-- mostrar proyectos personales
-- compartir imágenes y videos
-- mejorar diseño y organización
-- mantener una base gratuita, segura y escalable
-
-## Ejecutar en local
-
-```bash
-npm install
-npm run dev
-```
-
-Luego abre:
-
-```bash
-http://localhost:3000
-```
+En esta fase las portadas de proyectos ya pueden subirse desde la web. El siguiente día puede ser un panel admin más completo o la integración avanzada de herramientas.
